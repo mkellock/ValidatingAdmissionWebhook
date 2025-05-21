@@ -52,7 +52,7 @@ kubectl apply -f deploy/webhook.yaml
 ## Building and Pushing Docker Image
 
 ```bash
-docker build -t your-registry/ip-throttle-webhook:latest .
+docker build --platform linux/amd64 -t your-registry/ip-throttle-webhook:latest .
 docker push your-registry/ip-throttle-webhook:latest
 ```
 
