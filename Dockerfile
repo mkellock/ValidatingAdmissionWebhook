@@ -10,4 +10,4 @@ COPY main.py ./
 EXPOSE 8443
 
 # Use Gunicorn for production readiness
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8443", "main:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8443", "--certfile=/certs/tls.crt", "--keyfile=/certs/tls.key", "main:app"]

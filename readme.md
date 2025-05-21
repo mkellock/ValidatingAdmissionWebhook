@@ -34,20 +34,37 @@ This webhook prevents Karpenter (on EKS) from provisioning nodes into AWS subnet
      --cert=tls.crt --key=tls.key
    ```
 
-3. Extract the CA bundle for the `ValidatingWebhookConfiguration`:
+3. Verify that the secret is created:
+
+   ```bash
+   kubectl get secret ip-throttle-webhook-tls -n kube-system
+   ```
+
+4. Ensure the `webhook.yaml` file mounts the secret correctly:
+
+   - The secret is mounted at `/certs` in the pod.
+   - Gunicorn is configured to use `/certs/tls.crt` and `/certs/tls.key` for HTTPS.
+
+5. Extract the CA bundle for the `ValidatingWebhookConfiguration`:
 
    ```bash
    export CABUNDLE=$(kubectl get secret ip-throttle-webhook-tls \
      -n kube-system -o go-template='{{index .data "tls.crt"}}')
    ```
 
-4. Replace `<CA_BUNDLE>` in `deploy/webhook.yaml` with the value of `${CABUNDLE}`.
+   **Note:** Ensure the `CABUNDLE` is base64-encoded before adding it to the `ValidatingWebhookConfiguration`.
 
-### Deploying to Kubernetes
+6. Replace `<CA_BUNDLE>` in `deploy/webhook.yaml` with the value of `${CABUNDLE}`:
 
-```bash
-kubectl apply -f deploy/webhook.yaml
-```
+   ```yaml
+   caBundle: <CA_BUNDLE>
+   ```
+
+7. Apply the updated `webhook.yaml`:
+
+   ```bash
+   kubectl apply -f deploy/webhook.yaml
+   ```
 
 ## Building and Pushing Docker Image
 
