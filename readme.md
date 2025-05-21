@@ -27,10 +27,10 @@ This webhook prevents Karpenter (on EKS) from provisioning nodes into AWS subnet
        -x509 -days 365 -out tls.crt -subj "/CN=throttle.ip.karpenter.aws"
    ```
 
-2. Create a Kubernetes secret in the `ip-throttle` namespace:
+2. Create a Kubernetes secret in the `kube-system` namespace:
 
    ```bash
-   kubectl -n ip-throttle create secret tls ip-throttle-webhook-tls \
+   kubectl -n kube-system create secret tls ip-throttle-webhook-tls \
      --cert=tls.crt --key=tls.key
    ```
 
@@ -38,7 +38,7 @@ This webhook prevents Karpenter (on EKS) from provisioning nodes into AWS subnet
 
    ```bash
    export CABUNDLE=$(kubectl get secret ip-throttle-webhook-tls \
-     -n ip-throttle -o go-template='{{index .data "tls.crt"}}')
+     -n kube-system -o go-template='{{index .data "tls.crt"}}')
    ```
 
 4. Replace `<CA_BUNDLE>` in `deploy/webhook.yaml` with the value of `${CABUNDLE}`.
