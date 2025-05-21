@@ -24,7 +24,7 @@ This webhook prevents Karpenter (on EKS) from provisioning nodes into AWS subnet
 
    ```bash
    openssl req -newkey rsa:2048 -nodes -keyout tls.key \
-       -x509 -days 365 -out tls.crt -subj "/CN=throttle.ip.karpenter.aws"
+       -x509 -days 365 -out tls.crt -subj "/CN=ip-throttle-webhook.kube-system.svc"
    ```
 
 2. Create a Kubernetes secret in the `kube-system` namespace:

@@ -39,9 +39,13 @@ spec:
         app: ip-throttle-webhook
     spec:
       serviceAccountName: ip-throttle-webhook
+      tolerations:
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
       containers:
         - name: webhook
-          image: your-registry/ip-throttle-webhook:latest
+          image: 211125331032.dkr.ecr.eu-west-1.amazonaws.com/test:latest
+          imagePullPolicy: Always
           env:
             - name: THROTTLE_AT_PERCENT
               value: '10'
@@ -80,16 +84,12 @@ metadata:
   name: ip-throttle-webhook
 webhooks:
   - name: throttle.ip.karpenter.aws
-    rules:
-      - operations: ['CREATE']
-        apiGroups: ['karpenter.sh']
-        apiVersions: ['v1']
-        resources: ['nodeclaims']
     clientConfig:
       service:
         name: ip-throttle-webhook
         namespace: kube-system
         path: '/validate'
-      caBundle: <CA_BUNDLE>
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQVENDQWlXZ0F3SUJBZ0lVSnNhSlhJLytNWkN5RWYyWlFBTEdERnNpZVYwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0xqRXNNQ29HQTFVRUF3d2phWEF0ZEdoeWIzUjBiR1V0ZDJWaWFHOXZheTVyZFdKbExYTjVjM1JsYlM1egpkbU13SGhjTk1qVXdOVEl4TURVd05qTXlXaGNOTWpZd05USXhNRFV3TmpNeVdqQXVNU3d3S2dZRFZRUUREQ05wCmNDMTBhSEp2ZEhSc1pTMTNaV0pvYjI5ckxtdDFZbVV0YzNsemRHVnRMbk4yWXpDQ0FTSXdEUVlKS29aSWh2Y04KQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQUt4akZNeW4yWmJlR29Ick41SjQwdTJrNThlazBJWG45dDZSMk13WgptNHZOL1IxSUNEYkNETjdJYWdkUlN3YlFrdDFzWFJPZkh2UWxzZWpRMm9id2ZjMG5ZNUovblZmaHIyNWJ3cE1qCkMrY21Ta01iamtJSGtqNnZVR2N5YUt1c3VUbmRVYXRYZ2syTERkM3JNRkR6bWVrWHJJZ0ZYRk9LK2xiY0MrSWsKWXJNa1VJc0lyQm9jWU5kb1YrcitMc0R2UTltbTVxQnhSOWcrcmlNd3R4blhPUUtiTXNiNDFFb3NFODVVd3BBVApPcW1nUE1RazJ0ZGd1cG12Z1MwQUU0NHRFd2RqZlMvUVBud0JJYVljN2I0bXN6SFR4TTROUmMwV3Nmam1Qa01MCkk4RUdxUDBtR3RjZHJwZ2graXpmUXNSSlE4RVlFWDgxSDl0MkFQc3Z4a20wd1lNQ0F3RUFBYU5UTUZFd0hRWUQKVlIwT0JCWUVGRDV1VUY2R1pSQUZTT0ZldkE4cFFubC9TdTBmTUI4R0ExVWRJd1FZTUJhQUZENXVVRjZHWlJBRgpTT0ZldkE4cFFubC9TdTBmTUE4R0ExVWRFd0VCL3dRRk1BTUJBZjh3RFFZSktvWklodmNOQVFFTEJRQURnZ0VCCkFLbHJWbm9DVm50U2k4TFgvUnM4ZlpsTGFYaGE0VWY2NXVIcUZtWFB2eG1aa24velBvbTRyTEdvT2cwQURKeUcKYWpJU0hBaGJxU0FWZGdoT1d5SUZ3bTVnVUUzU1llUUY5NXZtYVh0eXZTZ1l0RTE5VzR1WVIyVUE5U0F0UTB6agowaGQ4dnNUZ29Ua0pvcVNFeGpiY0tJOWc2WEhXcUVkcjczV2hyUTg1a2xERzlGeTdFQzhacDI2cnNDUTArOHc5CkVTZ1BQczhDdnpUajlFN1VldUg1U2wwODQrNzN6bjFBMTYvTkV6S1MyWFhMazN4WGMxUXdYUzJoZUsrMUxBdHcKemd4cElIS2ZTYXQ5dU9Za0MrUDdVUEZtaUNhTldPQURKdk5wTUdiOE84bHZ1VUxPYVM4TEYyZVBkamM0VUp3KwozcGFOUmhQTUdCNnZ0UE1oYW82Sjh3WT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    timeoutSeconds: 30  # Increase timeout if needed
     admissionReviewVersions: ['v1']
     sideEffects: None
