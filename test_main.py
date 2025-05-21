@@ -49,16 +49,27 @@ def client_fixture(monkeypatch):
     return app.test_client()
 
 
-def admission_request(uid, subnet_id):
+def admission_request(uid, subnet_ids):
     """
-    Build a dummy AdmissionReview request for testing.
+    Build a dummy AdmissionReview request for a Karpenter NodeClaim.
+    subnet_ids: list or str of subnet IDs (will be joined with ',').
     """
+    if isinstance(subnet_ids, list):
+        subnet_ids_str = ",".join(subnet_ids)
+    else:
+        subnet_ids_str = subnet_ids
     return {
         'kind': 'AdmissionReview',
         'apiVersion': 'admission.k8s.io/v1',
         'request': {
             'uid': uid,
-            'object': {'spec': {'subnetID': subnet_id}}
+            'object': {
+                'spec': {
+                    'subnetSelector': {
+                        'aws-ids': subnet_ids_str
+                    }
+                }
+            }
         }
     }
 
@@ -83,6 +94,6 @@ def test_validate_denies_when_below_threshold(client_fixture, monkeypatch):
     data = resp.get_json()
     assert data['response']['allowed'] is False
     assert (
-        'Subnet subnet-abc only has'
+        'subnets in NodeClaim have too few available IPs'
         in data['response']['status']['message']
     )

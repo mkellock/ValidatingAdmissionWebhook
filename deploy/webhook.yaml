@@ -35,9 +35,9 @@ spec:
           image: your-registry/ip-throttle-webhook:latest
           env:
             - name: THROTTLE_AT_PERCENT
-              value: "10"
+              value: '10'
             - name: LOG_LEVEL
-              value: "INFO"
+              value: 'INFO'
           ports:
             - containerPort: 8443
           volumeMounts:
@@ -56,15 +56,15 @@ metadata:
 webhooks:
   - name: throttle.ip.karpenter.aws
     rules:
-      - operations: ["CREATE"]
-        apiGroups: ["*"]
-        apiVersions: ["v1"]
-        resources: ["nodes"]
+      - operations: ['CREATE']
+        apiGroups: ['karpenter.sh']
+        apiVersions: ['v1alpha1']
+        resources: ['nodeclaims']
     clientConfig:
       service:
         name: ip-throttle-webhook
         namespace: kube-system
-        path: "/validate"
+        path: '/validate'
       caBundle: <CA_BUNDLE>
-    admissionReviewVersions: ["v1"]
+    admissionReviewVersions: ['v1']
     sideEffects: None

@@ -64,7 +64,8 @@ app = Flask(__name__)
 @app.route('/validate', methods=['POST'])
 def validate():
     """
-    AdmissionReview endpoint for validating available IPs in a subnet.
+    AdmissionReview endpoint for validating available IPs in Karpenter
+    NodeClaims.
     """
     logger.info("Received AdmissionReview /validate request")
     try:
@@ -82,11 +83,13 @@ def validate():
         )
         return jsonify({'error': 'Invalid AdmissionReview request'}), 400
 
-    # Extract destination subnet ID
-    subnet_id = obj.get('spec', {}).get('subnetID')
-    if not subnet_id:
+    # Extract subnet IDs from Karpenter NodeClaim spec
+    subnet_selector = obj.get('spec', {}).get('subnetSelector', {})
+    subnet_ids_str = subnet_selector.get('aws-ids', '')
+    subnet_ids = [s.strip() for s in subnet_ids_str.split(',') if s.strip()]
+    if not subnet_ids:
         logger.info(
-            "No subnetID in request object; defaulting to allow"
+            "No subnet IDs found in NodeClaim; defaulting to allow"
         )
         return admission_response(uid, True)
 
@@ -105,41 +108,43 @@ def validate():
         throttle_percent
     )
 
-    try:
-        total, available = describe_subnet(subnet_id)
-    except Exception:  # pylint: disable=broad-except
-        logger.error(
-            "Error fetching subnet info for %s",
-            subnet_id,
-            exc_info=True
-        )
-        return admission_response(
-            uid, False, f"Error querying subnet {subnet_id}"
+    # Validate all subnet IDs in the selector
+    failed_subnets = []
+    for subnet_id in subnet_ids:
+        try:
+            total, available = describe_subnet(subnet_id)
+        except Exception:  # pylint: disable=broad-except
+            logger.error(
+                "Error fetching subnet info for %s",
+                subnet_id,
+                exc_info=True
+            )
+            return admission_response(
+                uid, False, f"Error querying subnet {subnet_id}"
+            )
+
+        threshold = total * (throttle_percent / 100.0)
+        logger.info(
+            "Subnet %s: available=%d, threshold=%.1f",
+            subnet_id, available, threshold
         )
 
-    threshold = total * (throttle_percent / 100.0)
-    logger.info(
-        "Subnet %s: available=%d, threshold=%.1f",
-        subnet_id, available, threshold
-    )
+        if available < threshold:
+            percent_free = (available / total) * 100.0 if total else 0
+            failed_subnets.append(
+                f"{subnet_id} ({available} IPs, {percent_free:.1f}%)"
+            )
 
-    allowed = available >= threshold
-    message = None
-    if not allowed:
-        percent_free = (available / total) * 100.0 if total else 0
+    if failed_subnets:
         message = (
-            f"Subnet {subnet_id} only has {available} IPs available "
-            f"({percent_free:.1f}%), below throttle threshold of "
-            f"{throttle_percent}%"
+            "One or more subnets in NodeClaim have too few available IPs: " +
+            ", ".join(failed_subnets)
         )
         logger.warning(message)
-    else:
-        logger.info(
-            "Subnet %s has sufficient IPs: %d/%d",
-            subnet_id, available, total
-        )
+        return admission_response(uid, False, message)
 
-    return admission_response(uid, allowed, message)
+    logger.info("All subnets in NodeClaim have sufficient IPs")
+    return admission_response(uid, True)
 
 
 def admission_response(uid, allowed, message=None):
