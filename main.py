@@ -32,8 +32,12 @@ subnet_cache = TTLCache(
 )
 
 # AWS EC2 client
-logger.info("Initializing AWS EC2 client")
-ec2 = boto3.client('ec2')
+region = os.getenv('AWS_REGION') or os.getenv('AWS_DEFAULT_REGION')
+if not region:
+    logger.error("AWS region not specified. Set AWS_REGION or AWS_DEFAULT_REGION environment variable.")
+    raise RuntimeError("AWS region not specified. Set AWS_REGION or AWS_DEFAULT_REGION environment variable.")
+logger.info(f"Initializing AWS EC2 client in region: {region}")
+ec2 = boto3.client('ec2', region_name=region)
 
 
 @cached(subnet_cache)
