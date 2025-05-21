@@ -4,10 +4,10 @@ This webhook prevents Karpenter (on EKS) from provisioning nodes into AWS subnet
 
 ## Features
 
-- Validates `CREATE` operations for `nodes` via a Kubernetes ValidatingWebhook.
+- Validates `CREATE` operations for `nodeclaims` from Karpenter via a Kubernetes ValidatingWebhook.
 - Queries AWS EC2 Subnet API for `AvailableIpAddressCount`.
 - Caches subnet queries for 15 seconds to reduce AWS API calls.
-- Rejects node creation when available IP count falls below a configurable threshold.
+- Rejects NodeClaim creation when available IP count falls below a configurable threshold.
 - Comprehensive logging for debugging and observability.
 
 ## Configuration
@@ -77,4 +77,4 @@ docker push your-registry/ip-throttle-webhook:latest
 
 ## Usage
 
-Once deployed, the webhook will intercept all node creation requests and enforce the configured IP threshold, ensuring your private subnets on EKS don’t exhaust their IP pools.
+Once deployed, the webhook will intercept Karpenter NodeClaim creation requests and enforce the configured IP threshold, ensuring your private subnets on EKS don't exhaust their IP pools.
