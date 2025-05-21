@@ -53,6 +53,10 @@ spec:
               value: 'regional'
             - name: AWS_SDK_LOAD_CONFIG
               value: '1'
+            - name: AWS_ROLE_ARN
+              value: 'arn:aws:iam::211125331032:role/ip-throttle-webhook'
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
           ports:
             - containerPort: 8443
           volumeMounts:
