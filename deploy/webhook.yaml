@@ -60,7 +60,7 @@ webhooks:
     rules:
       - operations: ['CREATE']
         apiGroups: ['karpenter.sh']
-        apiVersions: ['v1alpha1']
+        apiVersions: ['v1'] # Changed from 'v1alpha1' to 'v1'
         resources: ['nodeclaims']
     clientConfig:
       service:

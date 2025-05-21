@@ -87,10 +87,30 @@ def validate():
         )
         return jsonify({'error': 'Invalid AdmissionReview request'}), 400
 
-    # Extract subnet IDs from Karpenter NodeClaim spec
+    # Try different paths to find subnet IDs
+    subnet_ids = []
+
+    # Method 1: Direct subnetSelector (old format)
     subnet_selector = obj.get('spec', {}).get('subnetSelector', {})
     subnet_ids_str = subnet_selector.get('aws-ids', '')
-    subnet_ids = [s.strip() for s in subnet_ids_str.split(',') if s.strip()]
+    if subnet_ids_str:
+        subnet_ids = [s.strip() for s in subnet_ids_str.split(',') if s.strip()]
+        logger.info(f"Found subnet IDs in subnetSelector: {subnet_ids}")
+
+    # Method 2: Check EC2NodeClass (would require a Kubernetes API call)
+    # This would require looking up the NodeClass referenced in nodeClassRef
+    # and extracting subnet information from there.
+    if not subnet_ids:
+        node_class_ref = obj.get('spec', {}).get('nodeClassRef', {})
+        if node_class_ref:
+            logger.info(
+                f"NodeClaim references EC2NodeClass: "
+                f"{node_class_ref.get('name')}, but webhook can't access it directly"
+            )
+            # For now, detect but allow the NodeClaim
+            # TODO: Add support for looking up EC2NodeClass via K8s API
+
+    # If no subnet IDs found through any method, allow the NodeClaim
     if not subnet_ids:
         logger.info(
             "No subnet IDs found in NodeClaim; defaulting to allow"
