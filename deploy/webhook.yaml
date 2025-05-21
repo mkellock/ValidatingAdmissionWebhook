@@ -49,16 +49,30 @@ spec:
               value: 'DEBUG'
             - name: AWS_REGION
               value: 'eu-west-1'
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: 'regional'
+            - name: AWS_SDK_LOAD_CONFIG
+              value: '1'
           ports:
             - containerPort: 8443
           volumeMounts:
             - name: cert
               mountPath: /certs
               readOnly: true
+            - name: aws-iam-token
+              mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+              readOnly: true
       volumes:
         - name: cert
           secret:
             secretName: ip-throttle-webhook-tls
+        - name: aws-iam-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: sts.amazonaws.com
+                  expirationSeconds: 86400
+                  path: token
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
