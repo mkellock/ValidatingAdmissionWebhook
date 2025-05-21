@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ip-throttle
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ip-throttle-webhook
+  namespace: ip-throttle
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    app: ip-throttle-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ip-throttle-webhook
+  namespace: ip-throttle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ip-throttle-webhook
+  template:
+    metadata:
+      labels:
+        app: ip-throttle-webhook
+    spec:
+      containers:
+        - name: webhook
+          image: your-registry/ip-throttle-webhook:latest
+          env:
+            - name: THROTTLE_AT_PERCENT
+              value: "10"
+            - name: LOG_LEVEL
+              value: "INFO"
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            - name: cert
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: cert
+          secret:
+            secretName: ip-throttle-webhook-tls
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: ip-throttle-webhook
+webhooks:
+  - name: throttle.ip.karpenter.aws
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: ["*"]
+        apiVersions: ["v1"]
+        resources: ["nodes"]
+    clientConfig:
+      service:
+        name: ip-throttle-webhook
+        namespace: ip-throttle
+        path: "/validate"
+      caBundle: <CA_BUNDLE>
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
