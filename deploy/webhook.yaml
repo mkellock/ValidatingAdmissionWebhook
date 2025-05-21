@@ -9,7 +9,7 @@ metadata:
   name: ip-throttle-webhook
   namespace: kube-system
   annotations:
-    eks.amazonaws.com/role-arn: 'arn:aws:iam::442426855347:role/ip-throttle-webhook'
+    eks.amazonaws.com/role-arn: 'arn:aws:iam::211125331032:role/ip-throttle-webhook'
 ---
 apiVersion: v1
 kind: Service
