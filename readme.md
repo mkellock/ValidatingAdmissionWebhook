@@ -17,6 +17,7 @@ This webhook prevents Karpenter (on EKS) from provisioning nodes into AWS subnet
 - `THROTTLE_AT_PERCENT` (optional): Percentage threshold of free IPs below which node creation is denied. Default: `10`.
 - `LOG_LEVEL` (optional): Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default: `INFO`.
 - `PORT` (optional): Port for the Flask app. Default: `8443`.
+- `DRY_MODE` (optional): If set to `true`, the webhook will log decisions but always allow requests. Default: `false`.
 
 ### TLS Certificate & caBundle
 
