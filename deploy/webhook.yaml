@@ -52,6 +52,8 @@ spec:
               value: 'regional'
             - name: AWS_EC2_METADATA_DISABLED
               value: 'true'
+            - name: DRY_MODE
+              value: 'true'
           ports:
             - containerPort: 8443
           volumeMounts:
