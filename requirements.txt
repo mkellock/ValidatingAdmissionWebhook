@@ -2,3 +2,4 @@ Flask
 boto3
 cachetools
 gunicorn
+kubernetes

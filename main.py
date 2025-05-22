@@ -10,6 +10,7 @@ import ipaddress
 from flask import Flask, request, jsonify
 import boto3
 from cachetools import TTLCache, cached
+from kubernetes import client, config
 
 # Constants
 AWS_RESERVED_IPS = 5
@@ -38,6 +39,15 @@ if not region:
     )
 logger.info(f"Initializing AWS EC2 client in region: {region}")
 ec2 = boto3.client("ec2", region_name=region)
+
+# Initialize Kubernetes client
+try:
+    config.load_incluster_config()
+    k8s_client = client.CustomObjectsApi()
+    logger.info("Kubernetes client initialized")
+except Exception as e:
+    logger.error("Failed to initialize Kubernetes client: %s", str(e))
+    raise
 
 
 @cached(subnet_cache)
@@ -102,16 +112,41 @@ def validate():
         subnet_ids = [s.strip() for s in subnet_ids_str.split(",") if s.strip()]
         logger.info(f"Found subnet IDs in subnetSelector: {subnet_ids}")
 
-    # Method 2: Check EC2NodeClass (would require a Kubernetes API call)
+    # Method 2: Fetch EC2NodeClass if referenced
     if not subnet_ids:
         node_class_ref = obj.get("spec", {}).get("nodeClassRef", {})
         if node_class_ref:
-            logger.info(
-                f"NodeClaim references EC2NodeClass: "
-                f"{node_class_ref.get('name')}, but webhook can't access it directly"
-            )
-            # For now, detect but allow the NodeClaim
-            # TODO: Add support for looking up EC2NodeClass via K8s API
+            node_class_name = node_class_ref.get("name")
+            try:
+                ec2_node_class = k8s_client.get_namespaced_custom_object(
+                    group="karpenter.k8s.aws",
+                    version="v1",
+                    namespace="kube-system",
+                    plural="ec2nodeclasses",
+                    name=node_class_name,
+                )
+                subnet_selector = ec2_node_class.get("spec", {}).get(
+                    "subnetSelector", {}
+                )
+                subnet_ids_str = subnet_selector.get("aws-ids", "")
+                if subnet_ids_str:
+                    subnet_ids = [
+                        s.strip() for s in subnet_ids_str.split(",") if s.strip()
+                    ]
+                    logger.info(f"Found subnet IDs in EC2NodeClass: {subnet_ids}")
+            except client.exceptions.ApiException as e:
+                logger.error(
+                    "Failed to fetch EC2NodeClass %s: %s", node_class_name, str(e)
+                )
+                if DRY_MODE:
+                    logger.info(
+                        "Dry mode: would have rejected request due to missing EC2NodeClass %s",
+                        node_class_name,
+                    )
+                    return admission_response(uid, True)
+                return admission_response(
+                    uid, False, f"Error fetching EC2NodeClass {node_class_name}"
+                )
 
     # If no subnet IDs found through any method, allow the NodeClaim
     if not subnet_ids:
