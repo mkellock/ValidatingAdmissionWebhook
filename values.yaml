@@ -1,0 +1,127 @@
+# ------------------------------------------------------------
+# Core Cilium Configuration
+# ------------------------------------------------------------
+# CNI configuration - determines how Cilium integrates with Kubernetes networking
+# Cilium can operate as a standalone CNI plugin or integrate with existing CNI plugins
+cni:
+  # No chaining with other CNI plugins - Cilium handles all networking functionality
+  chainingMode: 'none'
+  # Cilium is the only CNI plugin in the cluster - it has exclusive control of network configuration
+  exclusive: true
+
+# Replace kube-proxy functionality with Cilium's eBPF implementation
+# This offers better performance, scalability and additional features compared to kube-proxy
+kubeProxyReplacement: true
+
+# Policy enforcement mode determines how network policies are applied
+# 'default' means policies are enforced on pods that have policies explicitly defined
+policyEnforcementMode: default
+
+# Enable masquerading of IPv4 traffic to allow pods to communicate with external networks
+# This translates pod IPs to node IPs when leaving the cluster, similar to NAT
+enableIPv4Masquerade: true
+
+# ------------------------------------------------------------
+# Networking and IP Management
+# ------------------------------------------------------------
+# IP Address Management (IPAM) controls how IP addresses are allocated to pods
+# This configuration determines the IP address ranges and allocation strategy
+ipam:
+  # Cluster pool mode means Cilium manages IP allocation from a cluster-wide pool of addresses
+  # This is useful for environments where you want centralized IP management
+  mode: cluster-pool
+  operator:
+    # The IPv4 CIDR range from which pod IP addresses will be assigned
+    # 172.16.0.0/12 provides a large range of available IP addresses
+    clusterPoolIPv4PodCIDRList:
+      - '172.16.0.0/12'
+    # Each node will receive a /24 subnet (254 usable IPs) from the pool for its pods
+    clusterPoolIPv4MaskSize: 24
+
+# Berkeley Packet Filter (BPF) settings control low-level network behavior
+# BPF allows for efficient and programmable network packet processing
+bpf:
+  # Enables load-balancing to external cluster IPs through BPF
+  # This improves performance for services using ClusterIPs
+  lbExternalClusterIP: true
+
+# Kubernetes API server connection details
+# These settings tell Cilium how to connect to the Kubernetes API
+k8sServiceHost: '10.125.128.12'
+k8sServicePort: 443
+
+# ------------------------------------------------------------
+# Security
+# ------------------------------------------------------------
+# Network traffic encryption secures pod-to-pod communications
+# This prevents eavesdropping on network traffic within the cluster
+encryption:
+  # Enable traffic encryption between pods for enhanced security
+  enabled: true
+  # WireGuard provides strong encryption with good performance characteristics
+  type: wireguard
+  # Also encrypt traffic between nodes, not just individual pods
+  # This creates a fully encrypted in-cluster network
+  nodeEncryption: true
+
+# ------------------------------------------------------------
+# Proxies and Services
+# ------------------------------------------------------------
+# Envoy is a high-performance proxy used for L7 (application layer) traffic management
+# It enables advanced traffic management, filtering and visibility
+envoy:
+  # Enable Envoy for L7 policy enforcement, allowing for HTTP/gRPC aware network policies
+  enabled: true
+
+# Cilium's built-in proxy handles service discovery, load balancing and policy enforcement
+# It works alongside Envoy for comprehensive network management
+proxy:
+  # Enable Cilium's proxy for service handling and policy enforcement
+  enabled: true
+
+# ------------------------------------------------------------
+# Observability
+# ------------------------------------------------------------
+# Hubble provides observability for network flows in a Cilium-managed network
+# It helps with monitoring, troubleshooting, and security analysis
+hubble:
+  relay:
+    # Hubble Relay aggregates observability data from all nodes for cluster-wide visibility
+    # It provides a central point of access for Hubble data
+    enabled: true
+  ui:
+    # The Hubble UI provides a graphical interface for network flow visualization
+    # This makes it easier to understand network communication patterns
+    enabled: true
+  metrics:
+    tls:
+      # TLS encryption for metrics collection is disabled
+      # In secure environments, consider enabling this feature
+      enabled: false
+
+# Prometheus metrics provide detailed insights into Cilium's operation
+# These metrics help with monitoring performance and troubleshooting issues
+prometheus:
+  # Enable Prometheus metrics for the main Cilium agent
+  enabled: true
+operator:
+  prometheus:
+    # Enable Prometheus metrics for the Cilium Operator, which handles cluster-wide functions
+    enabled: true
+
+# ------------------------------------------------------------
+# Deployment Configuration
+# ------------------------------------------------------------
+# Tolerations allow Cilium pods to be scheduled on nodes with specific taints
+# This ensures Cilium can run on all nodes, including those with restrictions
+tolerations:
+  # Allow scheduling on nodes marked as critical add-ons only
+  - key: 'CriticalAddonsOnly'
+    operator: 'Exists'
+  # Allow scheduling on nodes where the Cilium agent isn't ready yet
+  - key: 'node.cilium.io/agent-not-ready'
+    operator: 'Exists'
+  # Allow scheduling on nodes that are marked as not ready
+  # This is important for cluster bootstrap and recovery scenarios
+  - key: 'node.kubernetes.io/not-ready'
+    operator: 'Exists'
