@@ -70,6 +70,11 @@ def describe_subnet(subnet_id):
 
 app = Flask(__name__)
 
+# Check for dry mode
+DRY_MODE = os.getenv("DRY_MODE", "false").lower() == "true"
+if DRY_MODE:
+    logger.warning("Dry mode is enabled. All requests will be allowed.")
+
 
 @app.route("/validate", methods=["POST"])
 def validate():
@@ -98,8 +103,6 @@ def validate():
         logger.info(f"Found subnet IDs in subnetSelector: {subnet_ids}")
 
     # Method 2: Check EC2NodeClass (would require a Kubernetes API call)
-    # This would require looking up the NodeClass referenced in nodeClassRef
-    # and extracting subnet information from there.
     if not subnet_ids:
         node_class_ref = obj.get("spec", {}).get("nodeClassRef", {})
         if node_class_ref:
@@ -132,6 +135,12 @@ def validate():
             total, available = describe_subnet(subnet_id)
         except Exception:  # pylint: disable=broad-except
             logger.error("Error fetching subnet info for %s", subnet_id, exc_info=True)
+            if DRY_MODE:
+                logger.info(
+                    "Dry mode: would have rejected request due to error querying subnet %s",
+                    subnet_id,
+                )
+                return admission_response(uid, True)
             return admission_response(uid, False, f"Error querying subnet {subnet_id}")
 
         threshold = total * (throttle_percent / 100.0)
@@ -149,6 +158,9 @@ def validate():
             + ", ".join(failed_subnets)
         )
         logger.warning(message)
+        if DRY_MODE:
+            logger.info("Dry mode: would have rejected request with UID=%s", uid)
+            return admission_response(uid, True)
         return admission_response(uid, False, message)
 
     logger.info("All subnets in NodeClaim have sufficient IPs")

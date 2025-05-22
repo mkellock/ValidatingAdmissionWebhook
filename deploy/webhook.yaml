@@ -50,7 +50,7 @@ spec:
             - name: THROTTLE_AT_PERCENT
               value: '10'
             - name: LOG_LEVEL
-              value: 'DEBUG'
+              value: 'INFO'
             - name: AWS_REGION
               value: 'eu-west-1'
             - name: AWS_STS_REGIONAL_ENDPOINTS
